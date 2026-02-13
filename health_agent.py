@@ -11,7 +11,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# ---------- Enhanced Styling ----------
+#Enhanced Styling
 st.markdown("""
     <style>
     .main { 
@@ -53,7 +53,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 
-# ---------- Enhanced Groq Call with Error Handling ----------
+#Enhanced Groq Call with Error Handling
 def generate_response(api_key, prompt, temperature=0.6, max_tokens=1200):
     """Generate AI response with enhanced error handling and retry logic"""
     try:
@@ -89,7 +89,7 @@ def generate_response(api_key, prompt, temperature=0.6, max_tokens=1200):
         return None
 
 
-# ---------- Enhanced Calorie & Macro Calculations ----------
+#Enhanced Calorie & Macro Calculations
 def calculate_nutrition(age, weight, height, sex, activity_level, goal):
     """Calculate BMR, TDEE, target calories, and macros"""
 
@@ -142,7 +142,7 @@ def calculate_nutrition(age, weight, height, sex, activity_level, goal):
     }
 
 
-# ---------- Visualization Functions ----------
+#Visualization Function
 def create_macro_pie_chart(protein, carbs, fats):
     """Create an interactive macro distribution pie chart"""
     fig = go.Figure(data=[go.Pie(
@@ -191,7 +191,7 @@ def create_calorie_comparison(bmr, tdee, target):
     return fig
 
 
-# ---------- Export Functions ----------
+#Export Functions
 def export_plan_to_json(profile_data, nutrition_data, meal_plan, workout_plan):
     """Export user's complete plan to JSON"""
     export_data = {
@@ -204,7 +204,7 @@ def export_plan_to_json(profile_data, nutrition_data, meal_plan, workout_plan):
     return json.dumps(export_data, indent=2)
 
 
-# ---------- Main App ----------
+#Main App
 def main():
     # Initialize session state
     if "calculated" not in st.session_state:
@@ -215,11 +215,11 @@ def main():
         st.session_state.tips = ""
         st.session_state.profile = {}
 
-    # Header
+    #Header
     st.title("🏋️‍♂️ AI Health & Fitness Planner")
     st.markdown("*Your personalized path to fitness excellence*")
 
-    # ---------- Sidebar ----------
+    #Sidebar
     with st.sidebar:
         st.header("🔑 API Configuration")
 
@@ -247,7 +247,7 @@ def main():
         - 🎯 Goal-specific recommendations
         """)
 
-    # ---------- User Profile ----------
+    #User Profile
     st.header("👤 Your Profile")
 
     col1, col2, col3 = st.columns(3)
@@ -300,7 +300,7 @@ def main():
             options=["Beginner", "Intermediate", "Advanced", "Elite"]
         )
 
-    # ---------- Calculate Button ----------
+    #Calculate Button
     if st.button("📊 Calculate My Personalized Plan", use_container_width=True, type="primary"):
         with st.spinner("🔄 Calculating your personalized nutrition plan..."):
             nutrition = calculate_nutrition(age, weight, height, sex, activity_level, fitness_goal)
@@ -324,7 +324,7 @@ def main():
 
         st.success("✅ Plan calculated successfully!")
 
-    # ---------- Display Results ----------
+    #Display Results
     if st.session_state.calculated:
 
         nutrition = st.session_state.nutrition
@@ -386,7 +386,7 @@ def main():
 
         st.markdown("---")
 
-        # ---------- AI-Generated Plans ----------
+        #AI-Generated Plans
         st.header("🤖 AI-Powered Customization")
 
         col1, col2, col3 = st.columns(3)
@@ -421,7 +421,7 @@ Use clear markdown formatting with headers and bullet points.
                     if meal_plan:
                         st.session_state.meal_plan = meal_plan
 
-        # Workout Plan Generation
+        #Workout Plan Generation
         with col2:
             if st.button("🏋️ Generate Workout Plan", use_container_width=True):
 
@@ -452,7 +452,7 @@ Focus on sustainable, science-based programming. Use markdown formatting.
                     if workout_plan:
                         st.session_state.workout_plan = workout_plan
 
-        # Lifestyle Tips Generation
+        #Lifestyle Tips Generation
         with col3:
             if st.button("💡 Get Lifestyle Tips", use_container_width=True):
 
@@ -502,7 +502,7 @@ Keep it practical, evidence-based, and actionable. Use markdown formatting.
                 else:
                     st.info("Click 'Get Lifestyle Tips' for optimization strategies")
 
-        # ---------- Export Function ----------
+        #Export Function
         if st.session_state.meal_plan or st.session_state.workout_plan:
             st.markdown("---")
 
@@ -524,7 +524,7 @@ Keep it practical, evidence-based, and actionable. Use markdown formatting.
                     use_container_width=True
                 )
 
-    # ---------- Footer ----------
+    #Footer
     st.markdown("---")
     st.markdown("""
     <div style='text-align: center; color: #666; padding: 2rem;'>
