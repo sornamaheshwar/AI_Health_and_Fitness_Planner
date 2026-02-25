@@ -3,6 +3,12 @@ from groq import Groq
 import json
 from datetime import datetime
 import plotly.graph_objects as go
+from reportlab.lib.pagesizes import letter
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, HRFlowable
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib import colors
+from reportlab.lib.units import inch
+import io
 
 st.set_page_config(
     page_title="AI Health & Fitness Planner",
@@ -191,17 +197,151 @@ def create_calorie_comparison(bmr, tdee, target):
     return fig
 
 
-#Export Functions
-def export_plan_to_json(profile_data, nutrition_data, meal_plan, workout_plan):
-    """Export user's complete plan to JSON"""
-    export_data = {
-        'generated_at': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-        'profile': profile_data,
-        'nutrition': nutrition_data,
-        'meal_plan': meal_plan,
-        'workout_plan': workout_plan
-    }
-    return json.dumps(export_data, indent=2)
+#Export Function - PDF
+def export_plan_to_pdf(profile_data, nutrition_data, meal_plan, workout_plan):
+    """Export user's complete plan to a formatted PDF"""
+    buffer = io.BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=letter,
+                            rightMargin=0.75*inch, leftMargin=0.75*inch,
+                            topMargin=0.75*inch, bottomMargin=0.75*inch)
+
+    styles = getSampleStyleSheet()
+
+    # Custom styles
+    title_style = ParagraphStyle(
+        'CustomTitle',
+        parent=styles['Title'],
+        fontSize=22,
+        textColor=colors.HexColor('#667eea'),
+        spaceAfter=6
+    )
+    heading_style = ParagraphStyle(
+        'CustomHeading',
+        parent=styles['Heading2'],
+        fontSize=14,
+        textColor=colors.HexColor('#764ba2'),
+        spaceBefore=14,
+        spaceAfter=4
+    )
+    subheading_style = ParagraphStyle(
+        'CustomSubHeading',
+        parent=styles['Heading3'],
+        fontSize=11,
+        textColor=colors.HexColor('#2d3748'),
+        spaceBefore=8,
+        spaceAfter=2
+    )
+    normal_style = ParagraphStyle(
+        'CustomNormal',
+        parent=styles['Normal'],
+        fontSize=10,
+        leading=14,
+        spaceAfter=4
+    )
+    label_style = ParagraphStyle(
+        'Label',
+        parent=styles['Normal'],
+        fontSize=10,
+        textColor=colors.HexColor('#555555'),
+        leading=14
+    )
+
+    story = []
+
+    # Title
+    story.append(Paragraph("AI Health & Fitness Plan", title_style))
+    story.append(Paragraph(
+        f"Generated: {datetime.now().strftime('%B %d, %Y at %I:%M %p')}",
+        label_style
+    ))
+    story.append(HRFlowable(width="100%", thickness=1, color=colors.HexColor('#667eea')))
+    story.append(Spacer(1, 10))
+
+    # Profile Section
+    story.append(Paragraph("Your Profile", heading_style))
+    profile_lines = [
+        f"<b>Age:</b> {profile_data.get('age')} years",
+        f"<b>Weight:</b> {profile_data.get('weight')} kg",
+        f"<b>Height:</b> {profile_data.get('height')} cm",
+        f"<b>Sex:</b> {profile_data.get('sex')}",
+        f"<b>Activity Level:</b> {profile_data.get('activity_level')}",
+        f"<b>Fitness Goal:</b> {profile_data.get('fitness_goal')}",
+        f"<b>Experience Level:</b> {profile_data.get('experience_level')}",
+    ]
+    if profile_data.get('dietary_restrictions'):
+        profile_lines.append(f"<b>Dietary Restrictions:</b> {', '.join(profile_data['dietary_restrictions'])}")
+    if profile_data.get('workout_preferences'):
+        profile_lines.append(f"<b>Workout Preferences:</b> {', '.join(profile_data['workout_preferences'])}")
+    for line in profile_lines:
+        story.append(Paragraph(line, normal_style))
+
+    story.append(Spacer(1, 8))
+    story.append(HRFlowable(width="100%", thickness=0.5, color=colors.lightgrey))
+
+    # Nutrition Section
+    story.append(Paragraph("Nutrition Blueprint", heading_style))
+    nutrition_lines = [
+        f"<b>BMR (Basal Metabolic Rate):</b> {nutrition_data.get('bmr')} kcal",
+        f"<b>TDEE (Total Daily Energy Expenditure):</b> {nutrition_data.get('tdee')} kcal",
+        f"<b>Target Daily Calories:</b> {nutrition_data.get('target')} kcal",
+        f"<b>Daily Protein:</b> {nutrition_data.get('protein')} g",
+        f"<b>Daily Carbohydrates:</b> {nutrition_data.get('carbs')} g",
+        f"<b>Daily Fats:</b> {nutrition_data.get('fats')} g",
+    ]
+    for line in nutrition_lines:
+        story.append(Paragraph(line, normal_style))
+
+    story.append(Spacer(1, 8))
+    story.append(HRFlowable(width="100%", thickness=0.5, color=colors.lightgrey))
+
+    # Helper to render markdown-like text simply
+    def add_plain_content(text, section_title):
+        story.append(Paragraph(section_title, heading_style))
+        if not text:
+            story.append(Paragraph("Not generated.", normal_style))
+            return
+        for line in text.split('\n'):
+            stripped = line.strip()
+            if not stripped:
+                story.append(Spacer(1, 4))
+            elif stripped.startswith('### '):
+                story.append(Paragraph(stripped[4:], subheading_style))
+            elif stripped.startswith('## '):
+                story.append(Paragraph(stripped[3:], heading_style))
+            elif stripped.startswith('# '):
+                story.append(Paragraph(stripped[2:], heading_style))
+            elif stripped.startswith('- ') or stripped.startswith('* '):
+                story.append(Paragraph(f"&bull; {stripped[2:]}", normal_style))
+            elif stripped.startswith('**') and stripped.endswith('**'):
+                story.append(Paragraph(f"<b>{stripped[2:-2]}</b>", normal_style))
+            else:
+                # Handle inline bold (**text**)
+                clean = stripped.replace('**', '<b>', 1)
+                while '**' in clean:
+                    clean = clean.replace('**', '</b>', 1)
+                story.append(Paragraph(clean, normal_style))
+
+    # Meal Plan
+    add_plain_content(meal_plan, "Meal Plan")
+    story.append(Spacer(1, 8))
+    story.append(HRFlowable(width="100%", thickness=0.5, color=colors.lightgrey))
+
+    # Workout Plan
+    add_plain_content(workout_plan, "Workout Plan")
+
+    # Footer
+    story.append(Spacer(1, 16))
+    story.append(HRFlowable(width="100%", thickness=1, color=colors.HexColor('#667eea')))
+    story.append(Spacer(1, 6))
+    story.append(Paragraph(
+        "<i>Disclaimer: This plan provides general guidance only. Consult healthcare professionals "
+        "before starting any new diet or exercise program.</i>",
+        label_style
+    ))
+
+    doc.build(story)
+    buffer.seek(0)
+    return buffer.read()
 
 
 #Main App
@@ -243,7 +383,7 @@ def main():
         - 🥗 AI-powered meal plans
         - 🏋️ Customized workout routines
         - 📈 Visual progress tracking
-        - 💾 Export your complete plan
+        - 💾 Export your complete plan as PDF
         - 🎯 Goal-specific recommendations
         """)
 
@@ -437,7 +577,7 @@ Create a comprehensive weekly workout routine with these parameters:
 
 **Requirements:**
 1. Provide a 5-6 day weekly split
-2. Include specific exercises with sets × reps
+2. Include specific exercises with sets x reps
 3. Add progressive overload recommendations
 4. Include warm-up and cool-down routines
 5. Specify rest periods between sets
@@ -502,14 +642,14 @@ Keep it practical, evidence-based, and actionable. Use markdown formatting.
                 else:
                     st.info("Click 'Get Lifestyle Tips' for optimization strategies")
 
-        #Export Function
+        #Export as PDF
         if st.session_state.meal_plan or st.session_state.workout_plan:
             st.markdown("---")
 
             col1, col2, col3 = st.columns([1, 1, 1])
 
             with col2:
-                export_data = export_plan_to_json(
+                pdf_bytes = export_plan_to_pdf(
                     st.session_state.profile,
                     nutrition,
                     st.session_state.meal_plan,
@@ -517,10 +657,10 @@ Keep it practical, evidence-based, and actionable. Use markdown formatting.
                 )
 
                 st.download_button(
-                    label="📥 Download Complete Plan (JSON)",
-                    data=export_data,
-                    file_name=f"fitness_plan_{datetime.now().strftime('%Y%m%d')}.json",
-                    mime="application/json",
+                    label="📥 Download Complete Plan (PDF)",
+                    data=pdf_bytes,
+                    file_name=f"fitness_plan_{datetime.now().strftime('%Y%m%d')}.pdf",
+                    mime="application/pdf",
                     use_container_width=True
                 )
 
